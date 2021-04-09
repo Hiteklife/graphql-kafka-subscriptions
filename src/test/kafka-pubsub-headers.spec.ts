@@ -1,6 +1,5 @@
 require("dotenv").config()
 import { KafkaPubSub } from '../index'
-import * as Logger from 'bunyan';
 
 let pubsub: KafkaPubSub
 
@@ -10,11 +9,6 @@ beforeAll(() => {
     topic: process.env.KAFKA_TOPIC || 'test',
     host: process.env.KAFKA_HOST || 'localhost',
     port: process.env.KAFKA_PORT || '9092',
-    logger: Logger.createLogger({
-      name: 'pubsub',
-      stream: process.stdout,
-      level: 'info'
-    }),
     useHeaders: true,
     globalConfig: {
       //'debug': 'all',

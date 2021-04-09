@@ -1,7 +1,6 @@
 import * as Kafka from 'node-rdkafka'
+import * as util from 'util';
 import { PubSubEngine } from 'graphql-subscriptions'
-import * as Logger from 'bunyan';
-import { createChildLogger } from './child-logger';
 import { v4 as uuidv4 } from 'uuid';
 import { EventEmitter } from 'events';
 
@@ -9,19 +8,12 @@ export interface IKafkaOptions {
   topic: string
   host: string
   port: string
-  logger?: Logger,
   groupId?: any,
   globalConfig?: object,
   topicConfig?: object,
   useHeaders?: boolean,
   keyFun?: (any) => Buffer 
 }
-
-const defaultLogger = Logger.createLogger({
-  name: 'pubsub',
-  stream: process.stdout,
-  level: 'info'
-})
 
 export class KafkaPubSub extends PubSubEngine {
 
@@ -33,12 +25,25 @@ export class KafkaPubSub extends PubSubEngine {
   private subscriptions: { [key: string]: [string, (...args: any[]) => void] }
   private subIdCounter: number;
 
-  protected logger: Logger
+  protected logger: {info: Function, debug: Function, error: Function, warn: Function}
 
   constructor(options: IKafkaOptions) {
     super()
     this.options = options
-    this.logger = createChildLogger(this.options.logger || defaultLogger, 'KafkaPubSub')
+    this.logger = {
+      info: function(str, args) {
+        console.log(util.format(str, args));
+      },
+      debug: function(str, args) {
+        console.log(util.format(str, args));
+      },
+      warn: function(str, args) {
+        console.log(util.format("WARNING: "+str, args));
+      },
+      error: function(str, args) {
+        console.log(util.format("ERROR: "+str, args));
+      }
+    }
     
     this.ee = new EventEmitter();
     this.subscriptions = {};
@@ -56,10 +61,6 @@ export class KafkaPubSub extends PubSubEngine {
         payload: payload
       }
     }
-
-    if (this.logger.debug) {
-      this.logger.debug("Publish %s", JSON.stringify(kafkaPayload))
-    }    
 
     return new Promise((resolve, reject) => {
       this.producer.produce(
